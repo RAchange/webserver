@@ -12,7 +12,7 @@
 #include<openssl/md5.h>
 #include"httpd.h"
 
-#define CONNMAX 1000
+#define MAX_CONNECTION 1000
 #define BYTES 1024
 
 #define RED     "\x1b[31m"
@@ -48,7 +48,7 @@ static header_t reqhdr[17] = { {"\0", "\0"} };
 
 int file_fd, nBytes;
 char *ROOT, *pathname, *PATH;
-int listenfd, clients[CONNMAX];
+int listenfd, clients[MAX_CONNECTION];
 void error(char *);
 void startServer(char *);
 void respond(int);
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
 			,GREEN,PORT,RESET,GREEN,ROOT,RESET);
 	// Setting all elements to -1: signifies there is no client connected
 	int i;
-	for (i=0; i<CONNMAX; i++)
+	for (i=0; i<MAX_CONNECTION; i++)
 		clients[i]=-1;
 	startServer(PORT);
 
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		while (clients[slot]!=-1) slot = (slot+1)%CONNMAX;
+		while (clients[slot]!=-1) slot = (slot+1)%MAX_CONNECTION;
 	}
 
 	return 0;
@@ -221,7 +221,7 @@ void respond(int n)
 			reqline[i] = strtok(NULL, " \t\n\r\"");
 			char *filename = malloc(strlen(reqline[i]));
 			strcpy(filename, reqline[i]);
-			strcpy(path, "views/src/");
+			strcat(path, "views/src/");
 			strcat(path, filename);
 			
             char buff[999999];
@@ -271,14 +271,16 @@ void respond(int n)
 				write(file_fd, buff, j);
 				close(file_fd);
 
-				sprintf(data_to_send, "HTTP/1.0 200 OK\n\nContent-Type: \"text/html\"\r\n\r\n\
+				strcpy(path, "src/");
+				strcat(path, filename);
+				sprintf(data_to_send, "HTTP/1.0 200 OK\n\n\
 				<a href=\"%s\">%s</a>", path, path);
 
 				send(clients[n], data_to_send, strlen(data_to_send), 0);
 			}
 			else    {
 				perror(path);
-				write(clients[n], "HTTP/1.0 404 Not Found\n", 23); //FILE NOT FOUND
+				write(clients[n], "HTTP/1.0 404 Not Found\n", 23); //FILE NOT FOUND	
 			}
 		
 			free(filename);
